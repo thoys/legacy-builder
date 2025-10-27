@@ -21,29 +21,9 @@ jobs:
       uses: actions/checkout@v3
 
     - name: Ensure Ninja >= 1.12
-      shell: powershell
       run: |
-        Write-Output "Checking for ninja..."
-        $cmd = Get-Command ninja -ErrorAction SilentlyContinue
-        if ($null -eq $cmd) {
-          Write-Output "ninja not found — installing ninja 1.12.0 via Chocolatey"
-          choco install ninja --version=1.12.0 -y --no-progress
-        } else {
-          $ninja = (& ninja --version) -replace "\\s+",""
-          try {
-            if ([version]$ninja -lt [version]"1.12.0") {
-              Write-Output "Ninja $ninja is older than 1.12.0 — installing 1.12.0"
-              choco install ninja --version=1.12.0 -y --no-progress
-            } else {
-              Write-Output "Ninja $ninja meets requirement"
-            }
-          } catch {
-            Write-Output "Could not parse ninja version \"$ninja\" — installing 1.12.0"
-            choco install ninja --version=1.12.0 -y --no-progress
-          }
-        }
-        Write-Output "Final ninja version:"
-        ninja --version
+        powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .github/scripts/ensure-ninja.ps1
+      shell: bash
 
     - name: 'Run wash.bash'
       run: |
