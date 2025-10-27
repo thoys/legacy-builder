@@ -16,6 +16,30 @@ fi
 
 # 2. Build the Android application
 echo "Building the Android application (debug)..."
+# On Windows runners, Gradle/AGP may use the Ninja bundled with the Android SDK's CMake (often older).
+# Ensure the SDK CMake uses the system Ninja (installed/pinned to >= 1.12 via workflow) to avoid MAX_PATH issues.
+OS="`uname`"
+if [[ "$OS" == MINGW64_NT-10.0* || "$OS" == MSYS_NT-10.0* ]]; then
+    echo "Aligning Android SDK CMake's ninja.exe with system ninja..."
+    if command -v ninja >/dev/null 2>&1; then
+        NINJA_BIN="$(command -v ninja)"
+        echo "System ninja: $NINJA_BIN ($(ninja --version 2>/dev/null))"
+        shopt -s nullglob
+        UPDATED_ANY=false
+        for f in "$ANDROID_SDK_ROOT"/cmake/*/bin/ninja.exe; do
+            echo "Replacing: $f"
+            cp -f "$NINJA_BIN" "$f"
+            echo " -> now $f reports: $("$f" --version 2>/dev/null || echo unknown)"
+            UPDATED_ANY=true
+        done
+        shopt -u nullglob
+        if [ "$UPDATED_ANY" = false ]; then
+            echo "No SDK CMake ninja.exe found under $ANDROID_SDK_ROOT/cmake/*/bin — continuing."
+        fi
+    else
+        echo "Warning: 'ninja' not found in PATH; cannot align SDK CMake ninja."
+    fi
+fi
 (cd workspace/AwesomeProject/android && ./gradlew assembleDebug)
 
 # 3. Copy the APK to the dist folder
